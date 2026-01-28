@@ -73,7 +73,7 @@ def is_session_active(phone: str) -> bool:
 
 # Debug: Print configuration on startup
 print("=" * 50)
-print("🚀 Flask App Configuration")
+print("Flask App Configuration")
 print("=" * 50)
 print(f"API_BASE: {API_BASE}")
 print(f"MAKE_WEBHOOK_URL (Reply to Clients): {MAKE_WEBHOOK_URL[:50]}..." if MAKE_WEBHOOK_URL else "MAKE_WEBHOOK_URL: NOT SET")
@@ -194,7 +194,7 @@ def get_conversation(phone):
     offset = request.args.get('offset', 0, type=int)
 
     try:
-        # 1️⃣ Fetch messages from backend
+        # 1️ Fetch messages from backend
         response = requests.get(
             f"{API_BASE}/conversation/{phone}",
             params={"limit": limit, "offset": offset},
@@ -202,15 +202,15 @@ def get_conversation(phone):
         )
         messages = response.json()
 
-        # 2️⃣ Convert timestamps to IST
+        # 2️ Convert timestamps to IST
         for msg in messages:
             if 'timestamp' in msg:
                 msg['timestamp'] = format_timestamp_ist(msg['timestamp'])
 
-        # 3️⃣ Compute session status HERE (single source of truth)
+        # 3️ Compute session status HERE (single source of truth)
         session_active = is_session_active(phone)
 
-        # 4️⃣ Return combined response
+        # 4️ Return combined response
         return jsonify({
             "messages": messages,
             "session_active": session_active
@@ -291,7 +291,7 @@ def check_session(phone):
             "session_active": bool(r.json().get("session_active", False))
         })
     except Exception as e:
-        print("⚠️ Session proxy failed:", e)
+        print(" Session proxy failed:", e)
         return jsonify({"session_active": False})
 
 
@@ -345,7 +345,7 @@ def send_message():
         # Using a timeout is good practice
         log_response = requests.post(f"{API_BASE}/log_message", json=log_data, timeout=10)
         
-        print(f"✅ Process Complete. Log Status: {log_response.status_code}")
+        print(f" Process Complete. Log Status: {log_response.status_code}")
         print(f"{'='*60}\n")
         
         return jsonify({"success": True, "message": "Message sent and logged successfully"})
@@ -353,7 +353,7 @@ def send_message():
     except requests.exceptions.Timeout:
         return jsonify({"error": "Request timed out"}), 504
     except Exception as e:
-        print(f"\n❌ Error in send_message: {str(e)}")
+        print(f"\n Error in send_message: {str(e)}")
         traceback.print_exc()
         return jsonify({"error": "An internal error occurred"}), 500
     
@@ -371,7 +371,7 @@ def send_template():
     if not phone or not variables:
         return jsonify({"error": "Phone and variables required"}), 400
 
-    # 1️⃣ Trigger Make template webhook
+    # 1️ Trigger Make template webhook
     r = requests.post(
         MAKE_WEBHOOK_URL,
         json={
@@ -385,7 +385,7 @@ def send_template():
     if not r.ok:
         return jsonify({"error": "Template webhook failed"}), 502
 
-    # 2️⃣ LOG TEMPLATE MESSAGE TO BACKEND (CRITICAL)
+    # 2️ LOG TEMPLATE MESSAGE TO BACKEND (CRITICAL)
     try:
         requests.post(
             f"{API_BASE}/api/log_template_message",
@@ -397,7 +397,7 @@ def send_template():
             timeout=10
         )
     except Exception as e:
-        print("⚠️ Template logged failed:", e)
+        print(" Template logged failed:", e)
 
     return jsonify({"success": True})
 
@@ -424,7 +424,7 @@ def send_file():
         return jsonify({"error": "MAKE_FILE_WEBHOOK_URL not configured"}), 500
 
     try:
-        # ✅ Read multipart/form-data (NOT JSON)
+        #  Read multipart/form-data (NOT JSON)
         phone = request.form.get('phone')
         file = request.files.get('file')
 
@@ -442,7 +442,7 @@ def send_file():
         print(f"Mimetype: {file.mimetype}")
         print("=" * 60)
 
-        # ✅ Forward RAW file to Make (multipart upload)
+        #  Forward RAW file to Make (multipart upload)
         files = {
             "file": (file.filename, file.stream, file.mimetype)
         }
@@ -463,7 +463,7 @@ def send_file():
             print("❌ Make webhook failed:", response.text[:200])
             return jsonify({"error": "Make webhook failed"}), 500
 
-        # ✅ LOG FILE MESSAGE TO BACKEND DB (so dashboard can show it)
+        #  LOG FILE MESSAGE TO BACKEND DB (so dashboard can show it)
         try:
             requests.post(
                 f"{API_BASE}/log_message",
@@ -480,7 +480,7 @@ def send_file():
             )
         except Exception as log_err:
             # Logging failure should NOT block file delivery
-            print("⚠️ Failed to log file message:", log_err)
+            print(" Failed to log file message:", log_err)
 
         return jsonify({"success": True})
 
